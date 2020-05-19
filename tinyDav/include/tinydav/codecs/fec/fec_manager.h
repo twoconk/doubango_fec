@@ -63,7 +63,7 @@ typedef short i16_t;
 
 
 const int max_addr_len=100;
-const int max_data_len=3600;
+const int max_data_len= 3600;//360000;//3600;
 const int buf_len=max_data_len+200;
 
 const int default_mtu=1250;
@@ -104,8 +104,8 @@ const u32_t timer_interval=400;//this should be smaller than heartbeat_interval 
 /*common.h end.*/
 
 
-const int max_blob_packet_num=30000;//how many packet can be contain in a blob_t ,can be set very large
-const u32_t anti_replay_buff_size=30000;//can be set very large
+const int max_blob_packet_num=300000;//how many packet can be contain in a blob_t ,can be set very large
+const u32_t anti_replay_buff_size=300000;//can be set very large
 
 const int max_fec_packet_num=255;// this is the limitation of the rs lib
 extern u32_t fec_buff_num;
@@ -226,7 +226,7 @@ public:
 	 mtu=default_mtu;
 	 queue_len=200;
 	 timeout=8*1000;
-	 mode=0;
+	 mode=1;
 	 rs_cnt=0;
     }
 

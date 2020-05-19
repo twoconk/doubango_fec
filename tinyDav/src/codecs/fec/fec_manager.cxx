@@ -25,7 +25,7 @@ const int encode_fast_send=1;
 const int decode_fast_send=1;
 
 int short_packet_optimize=1;
-int header_overhead=40;
+int header_overhead=40; 
 
 u32_t fec_buff_num=2000;// how many packet can fec_decode_manager hold. shouldnt be very large,or it will cost huge memory
 
@@ -57,10 +57,10 @@ int blob_encode_t::get_shard_len(int n,int next_packet_len)
 
 int blob_encode_t::input(char *s,int len)
 {
-	//assert(current_len+len+sizeof(u16_t) +100<sizeof(input_buf));
-	//assert(len<=65535&&len>=0);
+	assert(current_len+len+sizeof(u16_t) +100<sizeof(input_buf));
+	assert(len<=65535&&len>=0);
 	counter++;
-	//assert(counter<=max_blob_packet_num);
+	assert(counter<=max_blob_packet_num);
 	write_u16(input_buf+current_len,len);
 	current_len+=sizeof(u16_t);
 	memcpy(input_buf+current_len,s,len);
@@ -94,12 +94,12 @@ int blob_decode_t::input(char *s,int len)
 {
 	if(last_len!=-1)
 	{
-		//assert(last_len==len);
+		assert(last_len==len);
 	}
 	counter++;
-	//assert(counter<=max_fec_packet_num);
+	assert(counter<=max_fec_packet_num);
 	last_len=len;
-	//assert(current_len+len+100<(int)sizeof(input_buf));//avoid overflow
+	assert(current_len+len+100<(int)sizeof(input_buf));//avoid overflow
 	memcpy(input_buf+current_len,s,len);
 	current_len+=len;
 	return 0;
@@ -158,11 +158,11 @@ fec_encode_manager_t::fec_encode_manager_t()
 
 	fec_par.clone(g_fec_par);
 	clear_data();
-
 }
-/*
+
 int fec_encode_manager_t::reset_fec_parameter(int data_num,int redundant_num,int mtu,int queue_len,int timeout,int mode)
 {
+	#if 0
 	fec_data_num=data_num;
 	fec_redundant_num=redundant_num;
 	fec_mtu=mtu;
@@ -170,13 +170,14 @@ int fec_encode_manager_t::reset_fec_parameter(int data_num,int redundant_num,int
 	fec_timeout=timeout;
 	fec_mode=mode;
 
-	//assert(data_num+redundant_num<max_fec_packet_num);
+	#endif//
 
 	//clear();
 
 	clear_data();
 	return 0;
-}*/
+}
+
 int fec_encode_manager_t::append(char *s,int len/*,int &is_first_packet*/)
 {
 	if(counter==0)
@@ -192,13 +193,13 @@ int fec_encode_manager_t::append(char *s,int len/*,int &is_first_packet*/)
 	}
 	if(fec_par.mode==0)//for type 0 use blob
 	{
-		//assert(blob_encode.input(s,len)==0);
+		assert(blob_encode.input(s,len)==0);
 	}
 	else if(fec_par.mode==1)//for tpe 1 use  input_buf and counter
 	{
 		TSK_DEBUG_INFO("counter=%d\n",counter);
-		//assert(len<=65535&&len>=0);
-		////assert(len<=fec_mtu);//relax this limitation
+		assert(len<=65535&&len>=0);
+		//assert(len<=fec_mtu);//relax this limitation
 		char * p=input_buf[counter]+sizeof(u32_t)+4*sizeof(char);//copy directly to final position,avoid unnecessary copy.
 		//remember to change this,if protocol is modified
 
@@ -209,7 +210,7 @@ int fec_encode_manager_t::append(char *s,int len/*,int &is_first_packet*/)
 	}
 	else
 	{
-		//assert(0==1);
+		assert(0==1);
 	}
 	counter++;
 	return 0;
@@ -224,7 +225,7 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
 		fec_par.clone(g_fec_par);
 	}
 	//int counter_back=counter;
-	//assert(fec_par.mode==0||fec_par.mode==1);
+	assert(fec_par.mode==0||fec_par.mode==1);
 
 	if(fec_par.mode==0&& s!=0 &&counter==0)
 	{
@@ -249,8 +250,8 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
 
 	if(fec_par.mode==0&& blob_encode.get_shard_len(fec_par.get_tail().x,len)>fec_par.mtu) {about_to_fec=1; delayed_append=1;}//fec then add packet
 
-	if(fec_par.mode==0) //assert(counter<fec_par.queue_len);//counter will never equal fec_pending_num,if that happens fec should already been done.
-	if(fec_par.mode==1) //assert(counter<fec_par.get_tail().x);
+	if(fec_par.mode==0) assert(counter<fec_par.queue_len);//counter will never equal fec_pending_num,if that happens fec should already been done.
+	if(fec_par.mode==1) assert(counter<fec_par.get_tail().x);
 
 
 	if(s!=0&&!delayed_append)
@@ -291,13 +292,13 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
     		{
     			u32_t best_len=(blob_encode.get_shard_len(tail_x,0)+header_overhead)*(tail_x+tail_y);
     			int best_data_num=tail_x;
-    			//assert(tail_x<=fec_par.rs_cnt);
+    			assert(tail_x<=fec_par.rs_cnt);
     			for(int i=1;i<tail_x;i++)
     			{
-    				//assert(fec_par.rs_par[i-1].x==i);
+    				assert(fec_par.rs_par[i-1].x==i);
     				int tmp_x=fec_par.rs_par[i-1].x;
     				int tmp_y=fec_par.rs_par[i-1].y;
-    				//assert(tmp_x==i);
+    				assert(tmp_x==i);
     				u32_t shard_len=blob_encode.get_shard_len(tmp_x,0);
     				if(shard_len>(u32_t)fec_par.mtu) continue;
 
@@ -309,11 +310,11 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
     				}
     			}
     			actual_data_num=best_data_num;
-    			//assert(best_data_num>=1&&best_data_num<=fec_par.rs_cnt);
+    			assert(best_data_num>=1&&best_data_num<=fec_par.rs_cnt);
     			actual_redundant_num=fec_par.rs_par[best_data_num-1].y;
     		}
 
-        	//assert(blob_encode.output(actual_data_num,blob_output,fec_len)==0);
+        	assert(blob_encode.output(actual_data_num,blob_output,fec_len)==0);
 
     		if(debug_fec_enc){
     			TSK_DEBUG_INFO("[enc]seq=%08x x=%d y=%d len=%d cnt=%d\n",seq,actual_data_num,actual_redundant_num,fec_len,counter);
@@ -327,14 +328,14 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
     		int sum_ori=0;
     		int sum=fec_len*counter;
 
-    		//assert(counter<=fec_par.rs_cnt);
+    		assert(counter<=fec_par.rs_cnt);
     		actual_data_num=counter;
     		actual_redundant_num=fec_par.rs_par[counter-1].y;
 
     		for(int i=0;i<counter;i++)
     		{
     			sum_ori+=input_len[i];
-    			//assert(input_len[i]>=0);
+    			assert(input_len[i]>=0);
     			if(input_len[i]>fec_len) fec_len=input_len[i];
     		}
 
@@ -426,7 +427,7 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
 		}
 
 		//TSK_DEBUG_INFO("!!! s= %d\n");
-		//assert(ready_for_output==0);
+		assert(ready_for_output==0);
     	ready_for_output=1;
     	first_packet_time_for_output=first_packet_time;
     	first_packet_time=0;
@@ -447,7 +448,7 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
 			int packet_to_send[max_fec_packet_num+5]={0};
 			int packet_to_send_counter=0;
 
-			////assert(counter!=0);
+			//assert(counter!=0);
 			if(s!=0)
 				packet_to_send[packet_to_send_counter++]=actual_data_num-1;
 			for(int i=actual_data_num;i<actual_data_num+actual_redundant_num;i++)
@@ -468,10 +469,10 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
     {
     	if(encode_fast_send&&s!=0&&fec_par.mode==1)
     	{
-    		//assert(counter>=1);
-    		//assert(counter<=255);
+    		assert(counter>=1);
+    		assert(counter<=255);
     		int input_buf_idx=counter-1;
-    		//assert(ready_for_output==0);
+    		assert(ready_for_output==0);
     		ready_for_output=1;
     		first_packet_time_for_output=0;
     		output_n=1;
@@ -503,7 +504,7 @@ int fec_encode_manager_t::input(char *s,int len/*,int &is_first_packet*/)
 
 	if(s!=0&&delayed_append)
 	{
-		//assert(fec_par.mode!=1);
+		assert(fec_par.mode!=1);
 		append(s,len);
 	}
 
@@ -536,8 +537,8 @@ int fec_decode_manager_t::re_init()
 
 int fec_decode_manager_t::input(char *s,int len)
 {
-	//assert(s!=0);
-	//assert(len+100<buf_len);//guarenteed by upper level
+	assert(s!=0);
+	assert(len+100<buf_len);//guarenteed by upper level
 
 	int tmp_idx=0;
 	int tmp_header_len=sizeof(u32_t)+sizeof(char)*4;
@@ -676,8 +677,8 @@ int fec_decode_manager_t::input(char *s,int len)
 	fec_data[index].redundant_num=redundant_num;
 	fec_data[index].idx=inner_index;
 	fec_data[index].len=len;
-	//assert(0<=index&&index<(int)fec_buff_num);
-	//assert(len+100<buf_len);
+	assert(0<=index&&index<(int)fec_buff_num);
+	assert(len+100<buf_len);
 	memcpy(fec_data[index].buf,s+tmp_idx,len);
 	mp[seq].group_mp[inner_index]=index;
 	//index++ at end of function
@@ -689,7 +690,7 @@ int fec_decode_manager_t::input(char *s,int len)
 		int about_to_fec=0;
 		if(type==0)
 		{
-			////assert((int)inner_mp.size()<=data_num);
+			//assert((int)inner_mp.size()<=data_num);
 			if((int)inner_mp.size()>data_num)
 			{
 				TSK_DEBUG_ERROR("inner_mp.size()>data_num\n");
@@ -736,7 +737,7 @@ int fec_decode_manager_t::input(char *s,int len)
 						y_got++;
 					fec_tmp_arr[it->first]=fec_data[it->second].buf;
 				}
-				//assert(rs_decode2(group_data_num,group_data_num+group_redundant_num,fec_tmp_arr,len)==0); //the input data has been modified in-place
+				assert(rs_decode2(group_data_num,group_data_num+group_redundant_num,fec_tmp_arr,len)==0); //the input data has been modified in-place
 				//this line should always succeed
 	    		mp[seq].fec_done=1;
 
@@ -759,7 +760,7 @@ int fec_decode_manager_t::input(char *s,int len)
 					anti_replay.set_invaild(seq);
 					goto end;
 				}
-				//assert(ready_for_output==0);
+				assert(ready_for_output==0);
 				ready_for_output=1;
 				anti_replay.set_invaild(seq);
 			}
@@ -817,7 +818,7 @@ int fec_decode_manager_t::input(char *s,int len)
 				for(map<int,int>::iterator it=inner_mp.begin();it!=inner_mp.end();it++)
 				{
 					int tmp_idx=it->second;
-					//assert(max_len>=fec_data[tmp_idx].len);//guarenteed by data_check_ok
+					assert(max_len>=fec_data[tmp_idx].len);//guarenteed by data_check_ok
 					memset(fec_data[tmp_idx].buf+fec_data[tmp_idx].len,0,max_len-fec_data[tmp_idx].len);
 				}
 
@@ -830,7 +831,7 @@ int fec_decode_manager_t::input(char *s,int len)
 				}
 				TSK_DEBUG_INFO("fec done,%d %d,missed_packet_counter=%d\n",group_data_num,group_redundant_num,missed_packet_counter);
 
-				//assert(rs_decode2(group_data_num,group_data_num+group_redundant_num,output_s_arr_buf,max_len)==0);//this should always succeed
+				assert(rs_decode2(group_data_num,group_data_num+group_redundant_num,output_s_arr_buf,max_len)==0);//this should always succeed
 				mp[seq].fec_done=1;
 
 
@@ -878,7 +879,7 @@ int fec_decode_manager_t::input(char *s,int len)
 
 					output_s_arr=output_s_arr_buf;
 					output_len_arr=output_len_arr_buf;
-					//assert(ready_for_output==0);
+					assert(ready_for_output==0);
 					ready_for_output=1;
 				}
 				else
@@ -893,10 +894,10 @@ int fec_decode_manager_t::input(char *s,int len)
 		{
 
 			if(decode_fast_send)
-			{
+			{ 
 				if(type==1&&data_num==0)
 				{
-					//assert(ready_for_output==0);
+					assert(ready_for_output==0);
 					output_n=1;
 					int check_len=read_u16(fec_data[index].buf);
 					output_s_arr_buf[0]=fec_data[index].buf+sizeof(u16_t);
